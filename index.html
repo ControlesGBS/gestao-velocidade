@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GBS · Gestão de Velocidade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#f5f6fb; --surface:#ffffff; --ink:#1b1d2a; --muted:#6b7088; --faint:#9a9fb5;
+    --line:#e7e9f2; --brand:#1f8f4e; --brand-d:#176b3b; --brand-soft:#e7f4ec;
+    --teal:#14b8a6; --amber:#f59e0b; --rose:#fb7185; --limit:#ef4444;
+    --radius:14px; --shadow:0 1px 2px rgba(20,22,40,.05), 0 8px 24px rgba(20,22,40,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hanken Grotesk",sans-serif;font-size:15px;line-height:1.55;min-height:100vh;display:flex;flex-direction:column}
+  h1,h2,h3,.disp{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;letter-spacing:-.01em;margin:0}
+  button{font-family:inherit;cursor:pointer}
+  .muted{color:var(--muted)}
+
+  .credit{text-align:center;font-size:12.5px;color:var(--faint);padding:18px 0}
+
+  /* ---------- LOGIN ---------- */
+  #login{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:radial-gradient(120% 120% at 100% 0,#e7f4ec 0,#f5f6fb 55%)}
+  .login-card{width:100%;max-width:392px;background:var(--surface);border:1px solid var(--line);
+    border-radius:20px;box-shadow:var(--shadow);padding:30px 32px;text-align:center}
+  .logo-badge{width:118px;height:86px;margin:0 auto 16px;background:#000;border-radius:14px;
+    display:grid;place-items:center;overflow:hidden}
+  .logo-badge img{width:100%;height:100%;object-fit:contain}
+  .login-card h1{font-size:21px;margin-bottom:4px}
+  .login-card .sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+  .field{margin-bottom:14px;text-align:left}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .field input{width:100%;height:44px;padding:0 13px;border:1px solid var(--line);border-radius:11px;
+    background:#fbfbfe;font-family:inherit;font-size:15px;color:var(--ink);outline:none;transition:.15s}
+  .field input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);background:#fff}
+  .btn{height:46px;width:100%;border:none;border-radius:11px;background:var(--brand);color:#fff;font-size:15px;font-weight:600;transition:.15s}
+  .btn:hover{background:var(--brand-d)} .btn:active{transform:scale(.99)}
+  .err{color:var(--limit);font-size:13px;margin-top:10px;min-height:18px}
+
+  /* ---------- APP ---------- */
+  #app{display:none;flex:1;flex-direction:column}
+  .topbar{height:62px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;
+    justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:5}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .mark{width:34px;height:26px;border-radius:7px;background:#000;display:grid;place-items:center;overflow:hidden}
+  .brand .mark img{width:100%;height:100%;object-fit:contain}
+  .brand b{font-family:"Bricolage Grotesque";font-weight:600;font-size:17px}
+  .ghost{background:transparent;border:1px solid var(--line);border-radius:10px;height:38px;padding:0 14px;color:var(--muted);font-size:14px}
+  .ghost:hover{background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1080px;width:100%;margin:0 auto;padding:24px 22px 40px;flex:1}
+
+  .uploader{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);padding:20px 22px;
+    display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+  .uploader.on{border-color:var(--brand);background:var(--brand-soft)}
+  .up-info{font-size:13px;color:var(--muted)}
+  .up-status{font-size:13.5px;color:var(--ink);margin-top:4px}
+  .up-status b{font-weight:600}
+
+  .filters{display:flex;flex-wrap:wrap;gap:16px 22px;align-items:center;margin-bottom:20px}
+  .fg{display:flex;align-items:center;gap:8px}
+  .fg>span{font-size:13px;color:var(--muted)}
+  select{height:38px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);
+    font-family:inherit;font-size:14px;color:var(--ink);outline:none}
+  select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+  .seg button{border:0;background:transparent;padding:8px 14px;font-size:13.5px;color:var(--muted)}
+  .seg button.on{background:var(--brand-soft);color:var(--brand-d);font-weight:600}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;box-shadow:var(--shadow)}
+  .kpi .lbl{font-size:12.5px;color:var(--muted);margin-bottom:5px}
+  .kpi .val{font-family:"Bricolage Grotesque";font-weight:600;font-size:27px;letter-spacing:-.02em}
+
+  .slider{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;
+    display:flex;align-items:center;gap:14px;margin-bottom:22px;box-shadow:var(--shadow)}
+  .slider label{font-size:14px;color:var(--muted);white-space:nowrap}
+  .slider input[type=range]{flex:1;accent-color:var(--brand)}
+  .slider .out{font-weight:600;min-width:72px;text-align:right}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:22px}
+  .card h3{font-size:16px;margin-bottom:2px}
+  .card .sub{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin:0 0 10px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .chart-wrap{position:relative;width:100%}
+</style>
+</head>
+<body>
+
+<section id="login">
+  <div>
+    <div class="login-card">
+      <div class="logo-badge"><img src="logo.png" alt="GBS Serviços"></div>
+      <h1>Gestão de Velocidade</h1>
+      <div class="sub">Acesso restrito · GBS Serviços</div>
+      <div class="field"><label>Usuário</label><input id="u" autocomplete="username" placeholder="Admin"></div>
+      <div class="field"><label>Senha</label><input id="p" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <button class="btn" id="enter">Entrar</button>
+      <div class="err" id="loginErr"></div>
+    </div>
+    <div class="credit">Desenvolvido por: Eliézer França</div>
+  </div>
+</section>
+
+<section id="app">
+  <div class="topbar">
+    <div class="brand"><div class="mark"><img src="logo.png" alt="GBS"></div><b>Gestão de Velocidade</b></div>
+    <button class="ghost" id="logout">Sair</button>
+  </div>
+
+  <div class="wrap">
+    <div class="uploader" id="drop">
+      <div>
+        <div style="font-weight:600">Relatório de infrações (.xlsx)</div>
+        <div class="up-info">Suba o export da InoPrime. Reenviar o mesmo período substitui os dados anteriores.</div>
+        <div class="up-status" id="upStatus"></div>
+      </div>
+      <div>
+        <input type="file" id="file" accept=".xlsx" style="display:none">
+        <button class="btn" style="width:auto;padding:0 20px" id="pick">Selecionar arquivo</button>
+      </div>
+    </div>
+
+    <div id="dash" style="display:none">
+      <div class="filters">
+        <div class="fg"><span>Mês</span><div class="seg" id="segMes"></div></div>
+        <div class="fg"><span>Dia</span><select id="selDia"></select></div>
+        <div class="fg"><span>Hora</span><select id="hIni"></select><span>até</span><select id="hFim"></select></div>
+        <div class="fg"><span>Base</span><select id="selBase"></select></div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="lbl">Infrações no filtro</div><div class="val" id="kTotal">—</div></div>
+        <div class="kpi"><div class="lbl">Condutores</div><div class="val" id="kMot">—</div></div>
+        <div class="kpi"><div class="lbl">Maior pico</div><div class="val" id="kMax">—</div></div>
+        <div class="kpi"><div class="lbl">Bases</div><div class="val" id="kBase">—</div></div>
+      </div>
+
+      <div class="slider">
+        <label>Pico a partir de</label>
+        <input type="range" min="40" max="140" value="80" step="1" id="thr">
+        <span class="out" id="thrOut">80 km/h</span>
+      </div>
+
+      <div class="card">
+        <h3>Infrações por condutor</h3>
+        <p class="sub">Top condutores no período e filtro. Clique numa barra para ver o detalhe.</p>
+        <div class="chart-wrap" id="rankWrap"><canvas id="rank" role="img" aria-label="Ranking de condutores por número de infrações"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h3 id="detTitle">Detalhe do condutor</h3>
+        <p class="sub" id="detHint">Clique numa barra acima para ver a velocidade praticada ao longo do tempo.</p>
+        <div class="legend" id="detLegend" style="display:none">
+          <span><i style="background:var(--teal)"></i>baixa</span>
+          <span><i style="background:var(--amber)"></i>média</span>
+          <span><i style="background:var(--rose)"></i>alta</span>
+          <span><i style="background:var(--limit)"></i>limite 80 km/h</span>
+        </div>
+        <div class="chart-wrap" style="height:320px"><canvas id="detail" role="img" aria-label="Velocidade praticada ao longo do tempo do condutor selecionado"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="credit">Desenvolvido por: Eliézer França</div>
+</section>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — preencha com os dados do seu projeto Supabase
+   (Settings > API). A chave "anon" é pública e pode ficar aqui.
+   ============================================================ */
+const SUPABASE_URL='https://aqflznkwvhnvhxqvjoax.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxZmx6bmt3dmhudmh4cXZqb2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMzA1NjUsImV4cCI6MjA5NDcwNjU2NX0.uzIS6ySToaK5ywCfGXFPGbLnNUaHgWkedMfdJFB45YA';
+const ADMIN_EMAIL='eliezer@gbsservicos.com'; /* e-mail do admin cadastrado no Supabase Auth */
+
+const $=(id)=>document.getElementById(id);
+const configOK=!SUPABASE_URL.startsWith('COLE')&&!SUPABASE_ANON_KEY.startsWith('COLE');
+const sb=configOK?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+
+/* ===================== ESTADO ===================== */
+let store=[];
+let mesSel=0,diaSel=0,hIni=0,hFim=23,baseSel='',sel=null,rtTimer=null;
+const MESES=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+/* ===================== HELPERS ===================== */
+function parseBR(s){
+  if(!s) return null;
+  const m=String(s).trim().match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if(!m) return null;
+  return new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5],+(m[6]||0));
+}
+function isoBR(d){const p=(n)=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())+'-03:00';}
+function titulo(s){return String(s||'').toLowerCase().replace(/\b\p{L}/gu,c=>c.toUpperCase());}
+function condutorDe(desc){const t=String(desc||'').trim();const i=t.indexOf(' - ');return titulo(i>=0?t.slice(i+3):t);}
+function corVel(v){
+  const t=Math.max(0,Math.min(1,(v-30)/90));
+  const A=[20,184,166],B=[245,158,11],C=[251,113,133];
+  const [a,b,k]=t<0.5?[A,B,t/0.5]:[B,C,(t-0.5)/0.5];
+  const m=(i)=>Math.round(a[i]+(b[i]-a[i])*k);
+  return `rgb(${m(0)},${m(1)},${m(2)})`;
+}
+
+/* ===================== AUTENTICAÇÃO ===================== */
+async function entrar(){
+  if(!configOK){$('loginErr').textContent='Configure SUPABASE_URL e SUPABASE_ANON_KEY no arquivo.';return;}
+  const uv=$('u').value.trim(), email=uv.includes('@')?uv:ADMIN_EMAIL;
+  $('loginErr').textContent='Entrando…';
+  const {error}=await sb.auth.signInWithPassword({email,password:$('p').value});
+  if(error){$('loginErr').textContent='Usuário ou senha inválidos.';return;}
+  abrirApp();
+}
+function abrirApp(){
+  $('login').style.display='none'; $('app').style.display='flex';
+  ligarRealtime(); loadFromDB();
+}
+$('enter').onclick=entrar;
+$('p').addEventListener('keydown',e=>{if(e.key==='Enter')entrar();});
+$('logout').onclick=async()=>{ if(sb) await sb.auth.signOut(); location.reload(); };
+
+function ligarRealtime(){
+  if(!sb) return;
+  try{
+    sb.channel('infracoes-rt').on('postgres_changes',{event:'*',schema:'public',table:'infracoes'},
+      ()=>{clearTimeout(rtTimer);rtTimer=setTimeout(loadFromDB,800);}).subscribe();
+  }catch(e){}
+}
+
+/* ===================== LER DO BANCO ===================== */
+async function loadFromDB(){
+  if(!sb) return;
+  let all=[],from=0;const size=1000;
+  while(true){
+    const {data,error}=await sb.from('infracoes')
+      .select('placa,condutor,base,pico,data_br,endereco').order('data',{ascending:true}).range(from,from+size-1);
+    if(error){$('upStatus').innerHTML='<span style="color:var(--limit)">Erro ao ler o banco: '+error.message+'</span>';return;}
+    all=all.concat(data); if(data.length<size) break; from+=size;
+  }
+  store=all.map(r=>({placa:r.placa,condutor:r.condutor,base:r.base,pico:r.pico,dt:parseBR(r.data_br),endereco:r.endereco})).filter(x=>x.dt);
+  if(store.length){
+    construirFiltros(); $('dash').style.display='block'; render();
+    if(!$('upStatus').innerHTML) $('upStatus').textContent=store.length.toLocaleString('pt-BR')+' infrações no banco.';
+  }else{
+    $('dash').style.display='none';
+    $('upStatus').textContent='Nenhum dado ainda. Suba um relatório para começar.';
+  }
+}
+
+/* ===================== UPLOAD -> BANCO (substitui por período) ===================== */
+function lerArquivo(file){
+  if(!sb){$('upStatus').innerHTML='<span style="color:var(--limit)">Configure o Supabase antes de subir.</span>';return;}
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    try{
+      $('upStatus').textContent='Lendo o arquivo…';
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:null});
+
+      let periodo=null;
+      const linhaPer=rows.find(r=>r&&String(r[0]||'').toLowerCase().includes('período'));
+      if(linhaPer&&linhaPer[1]){const partes=String(linhaPer[1]).split(/\s+at[ée]\s+/i);periodo={ini:parseBR(partes[0]),fim:parseBR(partes[1])};}
+
+      const hIdx=rows.findIndex(r=>r&&r.includes('Veículo')&&r.includes('Grupo do Veículo'));
+      if(hIdx<0) throw new Error('Cabeçalho não encontrado');
+      const head=rows[hIdx], col=(n)=>head.indexOf(n);
+      const cV=col('Veículo'),cD=col('Descrição'),cG=col('Grupo do Veículo'),cP=col('Pico'),cDt=col('Data'),cE=col('Endereço');
+
+      const novas=[];
+      for(let i=hIdx+1;i<rows.length;i++){
+        const r=rows[i]; if(!r||!r[cV]) continue;
+        const dataStr=r[cDt], dt=parseBR(dataStr); if(!dt) continue;
+        novas.push({placa:r[cV],condutor:condutorDe(r[cD]),base:titulo(r[cG]),pico:Number(r[cP])||0,dt,data_br:String(dataStr),endereco:r[cE]||''});
+      }
+      if(!novas.length) throw new Error('Nenhuma linha de dados encontrada');
+      if(!periodo){const ds=novas.map(n=>+n.dt);periodo={ini:new Date(Math.min(...ds)),fim:new Date(Math.max(...ds))};}
+
+      const iniISO=isoBR(periodo.ini), fimISO=isoBR(periodo.fim);
+      $('upStatus').textContent='Substituindo o período no banco…';
+      const del=await sb.from('infracoes').delete().gte('data',iniISO).lte('data',fimISO);
+      if(del.error) throw del.error;
+
+      const payload=novas.map(n=>({placa:n.placa,condutor:n.condutor,base:n.base,pico:n.pico,data:isoBR(n.dt),data_br:n.data_br,endereco:n.endereco}));
+      for(let i=0;i<payload.length;i+=500){
+        $('upStatus').textContent=`Enviando ${Math.min(i+500,payload.length)} de ${payload.length}…`;
+        const ins=await sb.from('infracoes').upsert(payload.slice(i,i+500),{onConflict:'placa,data'});
+        if(ins.error) throw ins.error;
+      }
+      const f=(d)=>d.toLocaleDateString('pt-BR');
+      $('upStatus').innerHTML=`Período <b>${f(periodo.ini)} – ${f(periodo.fim)}</b> substituído · <b>${novas.length.toLocaleString('pt-BR')}</b> infrações.`;
+      await loadFromDB();
+    }catch(err){
+      $('upStatus').innerHTML='<span style="color:var(--limit)">Falha: '+(err.message||err)+'</span>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+$('pick').onclick=()=>$('file').click();
+$('file').onchange=(e)=>{if(e.target.files[0])lerArquivo(e.target.files[0]);};
+const drop=$('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('on');}));
+drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)lerArquivo(f);});
+
+/* ===================== FILTROS ===================== */
+function construirFiltros(){
+  const meses=[...new Set(store.map(x=>x.dt.getMonth()+1))].sort((a,b)=>a-b);
+  $('segMes').innerHTML='<button data-m="0" class="on">Todos</button>'+meses.map(m=>`<button data-m="${m}">${MESES[m]}</button>`).join('');
+  $('segMes').onclick=(e)=>{const b=e.target.closest('button');if(!b)return;
+    [...$('segMes').children].forEach(x=>x.classList.remove('on'));b.classList.add('on');mesSel=+b.dataset.m;popularDias();render();};
+  const hi=$('hIni'),hf=$('hFim');
+  if(!hi.children.length){
+    for(let i=0;i<24;i++){const h=String(i).padStart(2,'0')+'h';
+      hi.insertAdjacentHTML('beforeend',`<option value="${i}">${h}</option>`);
+      hf.insertAdjacentHTML('beforeend',`<option value="${i}">${h}</option>`);}
+    hf.value='23'; hi.onchange=()=>{hIni=+hi.value;render();}; hf.onchange=()=>{hFim=+hf.value;render();};
+  }
+  const bases=[...new Set(store.map(x=>x.base))].sort();
+  $('selBase').innerHTML='<option value="">Todas as bases</option>'+bases.map(b=>`<option value="${b}">${b}</option>`).join('');
+  baseSel=''; $('selBase').onchange=()=>{baseSel=$('selBase').value;render();};
+  mesSel=0; popularDias();
+}
+function popularDias(){
+  const dias=[...new Set(store.filter(x=>mesSel===0||x.dt.getMonth()+1===mesSel).map(x=>x.dt.getDate()))].sort((a,b)=>a-b);
+  $('selDia').innerHTML='<option value="0">Todos os dias</option>'+dias.map(d=>`<option value="${d}">Dia ${d}</option>`).join('');
+  diaSel=0; $('selDia').onchange=()=>{diaSel=+$('selDia').value;render();};
+}
+function escopo(){
+  const lo=Math.min(hIni,hFim),hi=Math.max(hIni,hFim);
+  return store.filter(x=>(mesSel===0||x.dt.getMonth()+1===mesSel)&&(diaSel===0||x.dt.getDate()===diaSel)&&(baseSel===''||x.base===baseSel)&&x.dt.getHours()>=lo&&x.dt.getHours()<=hi);
+}
+
+/* ===================== GRÁFICOS ===================== */
+const valueLabels={id:'valueLabels',afterDatasetsDraw(chart){
+  const ctx=chart.ctx,meta=chart.getDatasetMeta(0);
+  ctx.save();ctx.font='600 12px "Hanken Grotesk",sans-serif';ctx.fillStyle='#176b3b';ctx.textBaseline='middle';
+  meta.data.forEach((bar,i)=>{const v=chart.data.datasets[0].data[i];if(v==null)return;
+    ctx.fillText(v.toLocaleString('pt-BR'),bar.x+6,bar.y);});
+  ctx.restore();
+}};
+let rankChart,detChart;
+$('thr').oninput=()=>render();
+function render(){
+  const t=+$('thr').value; $('thrOut').textContent=t+' km/h';
+  const inf=escopo().filter(x=>x.pico>=t);
+  const porCond={};
+  inf.forEach(x=>{(porCond[x.condutor]=porCond[x.condutor]||{c:0,base:x.base}).c++;});
+  let linhas=Object.entries(porCond).map(([nome,o])=>({nome,c:o.c,base:o.base})).sort((a,b)=>b.c-a.c).slice(0,15);
+
+  $('kTotal').textContent=inf.length.toLocaleString('pt-BR');
+  $('kMot').textContent=Object.keys(porCond).length;
+  $('kMax').textContent=(inf.length?Math.max(...inf.map(x=>x.pico)):0)+' km/h';
+  $('kBase').textContent=new Set(inf.map(x=>x.base)).size;
+
+  $('rankWrap').style.height=Math.max(180,linhas.length*34+40)+'px';
+  const labels=linhas.map(r=>r.nome),data=linhas.map(r=>r.c);
+  const onClick=(e,el)=>{if(el.length){sel=linhas[el[0].index].nome;renderDetail();}};
+  if(!rankChart){
+    rankChart=new Chart($('rank'),{type:'bar',plugins:[valueLabels],
+      data:{labels,datasets:[{label:'Infrações',data,backgroundColor:'#1f8f4e',borderRadius:6,barThickness:18}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:200},layout:{padding:{right:32}},
+        onClick,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>'Infrações: '+c.parsed.x,afterLabel:(c)=>'Base: '+linhas[c.dataIndex].base}}},
+        scales:{x:{beginAtZero:true,ticks:{precision:0},grid:{color:'#eef0f7'}},y:{grid:{display:false}}}}});
+  }else{rankChart.data.labels=labels;rankChart.data.datasets[0].data=data;rankChart.options.onClick=onClick;rankChart.update();}
+  if(sel) renderDetail();
+}
+function renderDetail(){
+  const t=+$('thr').value;
+  const pts=escopo().filter(x=>x.condutor===sel&&x.pico>=t).sort((a,b)=>a.dt-b.dt);
+  $('detHint').style.display='none'; $('detLegend').style.display='flex';
+  $('detTitle').textContent='Controle de velocidade — '+sel;
+  const fmt=(d)=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const labels=pts.map(p=>fmt(p.dt)),vel=pts.map(p=>p.pico),cores=pts.map(p=>corVel(p.pico)),loc=pts.map(p=>p.endereco);
+  const cfg={type:'bar',
+    data:{labels,datasets:[
+      {label:'Velocidade',data:vel,backgroundColor:cores,barPercentage:1,categoryPercentage:1},
+      {label:'Limite',type:'line',data:vel.map(()=>80),borderColor:'#ef4444',borderWidth:2,pointRadius:0,borderDash:[6,4]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:200},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:(it)=>it[0].label,
+        label:(it)=>it.datasetIndex===0?['Local: '+(loc[it.dataIndex]||'—'),'Velocidade: '+it.parsed.y+' km/h']:'Limite: 80 km/h'}}},
+      scales:{x:{title:{display:true,text:'Período'},ticks:{display:false},grid:{display:false}},
+        y:{beginAtZero:true,suggestedMax:120,grid:{color:'#eef0f7'}}}}};
+  if(!detChart){detChart=new Chart($('detail'),cfg);}else{detChart.data=cfg.data;detChart.options=cfg.options;detChart.update();}
+}
+
+/* ===================== INÍCIO: mantém sessão ao recarregar ===================== */
+(async()=>{
+  if(sb){ const {data}=await sb.auth.getSession(); if(data&&data.session){abrirApp();} }
+})();
+</script>
+</body>
+</html>
