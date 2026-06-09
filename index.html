@@ -13,7 +13,7 @@
 <style>
   :root{
     --bg:#f5f6fb; --surface:#ffffff; --ink:#1b1d2a; --muted:#6b7088; --faint:#9a9fb5;
-    --line:#e7e9f2; --brand:#1f8f4e; --brand-d:#176b3b; --brand-soft:#e7f4ec;
+    --line:#e7e9f2; --brand:#2563eb; --brand-d:#1d4ed8; --brand-soft:#e7edfd;
     --teal:#14b8a6; --amber:#f59e0b; --rose:#fb7185; --limit:#ef4444;
     --radius:14px; --shadow:0 1px 2px rgba(20,22,40,.05), 0 8px 24px rgba(20,22,40,.05);
   }
@@ -27,7 +27,7 @@
 
   /* ---------- LOGIN ---------- */
   #login{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;
-    background:radial-gradient(120% 120% at 100% 0,#e7f4ec 0,#f5f6fb 55%)}
+    background:radial-gradient(120% 120% at 100% 0,#e7edfd 0,#f5f6fb 55%)}
   .login-card{width:100%;max-width:392px;background:var(--surface);border:1px solid var(--line);
     border-radius:20px;box-shadow:var(--shadow);padding:30px 32px;text-align:center}
   .logo-badge{margin:0 auto 14px;display:flex;justify-content:center}
@@ -341,7 +341,7 @@ function escopo(){
 /* ===================== GRÁFICOS ===================== */
 const valueLabels={id:'valueLabels',afterDatasetsDraw(chart){
   const ctx=chart.ctx,meta=chart.getDatasetMeta(0);
-  ctx.save();ctx.font='600 12px "Hanken Grotesk",sans-serif';ctx.fillStyle='#176b3b';ctx.textBaseline='middle';
+  ctx.save();ctx.font='600 12px "Hanken Grotesk",sans-serif';ctx.fillStyle='#1d4ed8';ctx.textBaseline='middle';
   meta.data.forEach((bar,i)=>{const v=chart.data.datasets[0].data[i];if(v==null)return;
     ctx.fillText(v.toLocaleString('pt-BR'),bar.x+6,bar.y);});
   ctx.restore();
@@ -365,7 +365,7 @@ function render(){
   const onClick=(e,el)=>{if(el.length){sel=linhas[el[0].index].nome;renderDetail();}};
   if(!rankChart){
     rankChart=new Chart($('rank'),{type:'bar',plugins:[valueLabels],
-      data:{labels,datasets:[{label:'Infrações',data,backgroundColor:'#1f8f4e',borderRadius:6,barThickness:18}]},
+      data:{labels,datasets:[{label:'Infrações',data,backgroundColor:'#2563eb',borderRadius:6,barThickness:18}]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:200},layout:{padding:{right:32}},
         onClick,
         plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>'Infrações: '+c.parsed.x,afterLabel:(c)=>'Base: '+linhas[c.dataIndex].base}}},
