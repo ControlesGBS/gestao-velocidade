@@ -30,9 +30,8 @@
     background:radial-gradient(120% 120% at 100% 0,#e7f4ec 0,#f5f6fb 55%)}
   .login-card{width:100%;max-width:392px;background:var(--surface);border:1px solid var(--line);
     border-radius:20px;box-shadow:var(--shadow);padding:30px 32px;text-align:center}
-  .logo-badge{width:118px;height:86px;margin:0 auto 16px;background:#000;border-radius:14px;
-    display:grid;place-items:center;overflow:hidden}
-  .logo-badge img{width:100%;height:100%;object-fit:contain}
+  .logo-badge{width:172px;margin:0 auto 14px;display:grid;place-items:center}
+  .logo-badge img{width:100%;height:auto;display:block}
   .login-card h1{font-size:21px;margin-bottom:4px}
   .login-card .sub{font-size:13px;color:var(--muted);margin-bottom:22px}
   .field{margin-bottom:14px;text-align:left}
@@ -49,8 +48,8 @@
   .topbar{height:62px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;
     justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:5}
   .brand{display:flex;align-items:center;gap:11px}
-  .brand .mark{width:34px;height:26px;border-radius:7px;background:#000;display:grid;place-items:center;overflow:hidden}
-  .brand .mark img{width:100%;height:100%;object-fit:contain}
+  .brand .mark{height:30px;display:grid;place-items:center}
+  .brand .mark img{height:100%;width:auto;display:block}
   .brand b{font-family:"Bricolage Grotesque";font-weight:600;font-size:17px}
   .ghost{background:transparent;border:1px solid var(--line);border-radius:10px;height:38px;padding:0 14px;color:var(--muted);font-size:14px}
   .ghost:hover{background:var(--bg);color:var(--ink)}
@@ -69,6 +68,8 @@
   select{height:38px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);
     font-family:inherit;font-size:14px;color:var(--ink);outline:none}
   select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .btn-dl{height:38px;padding:0 16px;border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand-d);border-radius:10px;font-size:14px;font-weight:600}
+  .btn-dl:hover{background:var(--brand);color:#fff}
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
   .seg button{border:0;background:transparent;padding:8px 14px;font-size:13.5px;color:var(--muted)}
   .seg button.on{background:var(--brand-soft);color:var(--brand-d);font-weight:600}
@@ -130,10 +131,11 @@
 
     <div id="dash" style="display:none">
       <div class="filters">
-        <div class="fg"><span>Mês</span><div class="seg" id="segMes"></div></div>
+        <div class="fg"><span>Mês</span><select id="selMes"></select></div>
         <div class="fg"><span>Dia</span><select id="selDia"></select></div>
         <div class="fg"><span>Hora</span><select id="hIni"></select><span>até</span><select id="hFim"></select></div>
         <div class="fg"><span>Base</span><select id="selBase"></select></div>
+        <div class="fg" style="margin-left:auto"><button class="btn-dl" id="dl">⬇ Baixar Excel</button></div>
       </div>
 
       <div class="kpis">
@@ -176,9 +178,9 @@
    CONFIGURAÇÃO — preencha com os dados do seu projeto Supabase
    (Settings > API). A chave "anon" é pública e pode ficar aqui.
    ============================================================ */
-const SUPABASE_URL='https://aqflznkwvhnvhxqvjoax.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxZmx6bmt3dmhudmh4cXZqb2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMzA1NjUsImV4cCI6MjA5NDcwNjU2NX0.uzIS6ySToaK5ywCfGXFPGbLnNUaHgWkedMfdJFB45YA';
-const ADMIN_EMAIL='eliezer@gbsservicos.com'; /* e-mail do admin cadastrado no Supabase Auth */
+const SUPABASE_URL='COLE_AQUI_A_PROJECT_URL';
+const SUPABASE_ANON_KEY='COLE_AQUI_A_ANON_KEY';
+const ADMIN_EMAIL='admin@gbs.com'; /* e-mail do admin cadastrado no Supabase Auth */
 
 const $=(id)=>document.getElementById(id);
 const configOK=!SUPABASE_URL.startsWith('COLE')&&!SUPABASE_ANON_KEY.startsWith('COLE');
@@ -312,9 +314,8 @@ drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)lerArquivo
 /* ===================== FILTROS ===================== */
 function construirFiltros(){
   const meses=[...new Set(store.map(x=>x.dt.getMonth()+1))].sort((a,b)=>a-b);
-  $('segMes').innerHTML='<button data-m="0" class="on">Todos</button>'+meses.map(m=>`<button data-m="${m}">${MESES[m]}</button>`).join('');
-  $('segMes').onclick=(e)=>{const b=e.target.closest('button');if(!b)return;
-    [...$('segMes').children].forEach(x=>x.classList.remove('on'));b.classList.add('on');mesSel=+b.dataset.m;popularDias();render();};
+  $('selMes').innerHTML='<option value="0">Todos os meses</option>'+meses.map(m=>`<option value="${m}">${MESES[m]}</option>`).join('');
+  $('selMes').onchange=()=>{mesSel=+$('selMes').value;popularDias();render();};
   const hi=$('hIni'),hf=$('hFim');
   if(!hi.children.length){
     for(let i=0;i<24;i++){const h=String(i).padStart(2,'0')+'h';
@@ -391,6 +392,28 @@ function renderDetail(){
         y:{beginAtZero:true,suggestedMax:120,grid:{color:'#eef0f7'}}}}};
   if(!detChart){detChart=new Chart($('detail'),cfg);}else{detChart.data=cfg.data;detChart.options=cfg.options;detChart.update();}
 }
+
+/* ===================== EXPORTAR EXCEL (respeita os filtros) ===================== */
+function baixarExcel(){
+  const t=+$('thr').value;
+  const rows=escopo().filter(x=>x.pico>=t).sort((a,b)=>a.dt-b.dt);
+  if(!rows.length){alert('Não há registros no filtro atual para exportar.');return;}
+  const p=(n)=>String(n).padStart(2,'0');
+  const dados=rows.map(x=>({
+    'Condutor':x.condutor,
+    'Base':x.base,
+    'Data':p(x.dt.getDate())+'/'+p(x.dt.getMonth()+1)+'/'+x.dt.getFullYear(),
+    'Hora':p(x.dt.getHours())+':'+p(x.dt.getMinutes())+':'+p(x.dt.getSeconds()),
+    'Velocidade (km/h)':x.pico
+  }));
+  const ws=XLSX.utils.json_to_sheet(dados);
+  ws['!cols']=[{wch:32},{wch:20},{wch:12},{wch:10},{wch:16}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Velocidades');
+  const hoje=new Date(),nome='velocidades_'+hoje.getFullYear()+p(hoje.getMonth()+1)+p(hoje.getDate())+'.xlsx';
+  XLSX.writeFile(wb,nome);
+}
+$('dl').onclick=baixarExcel;
 
 /* ===================== INÍCIO: mantém sessão ao recarregar ===================== */
 (async()=>{
