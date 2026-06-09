@@ -30,8 +30,8 @@
     background:radial-gradient(120% 120% at 100% 0,#e7f4ec 0,#f5f6fb 55%)}
   .login-card{width:100%;max-width:392px;background:var(--surface);border:1px solid var(--line);
     border-radius:20px;box-shadow:var(--shadow);padding:30px 32px;text-align:center}
-  .logo-badge{width:172px;margin:0 auto 14px;display:grid;place-items:center}
-  .logo-badge img{width:100%;height:auto;display:block}
+  .logo-badge{margin:0 auto 14px;display:flex;justify-content:center}
+  .logo-badge img{height:96px;width:auto;display:block}
   .login-card h1{font-size:21px;margin-bottom:4px}
   .login-card .sub{font-size:13px;color:var(--muted);margin-bottom:22px}
   .field{margin-bottom:14px;text-align:left}
@@ -48,8 +48,8 @@
   .topbar{height:62px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;
     justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:5}
   .brand{display:flex;align-items:center;gap:11px}
-  .brand .mark{height:30px;display:grid;place-items:center}
-  .brand .mark img{height:100%;width:auto;display:block}
+  .brand .mark{display:flex;align-items:center}
+  .brand .mark img{height:32px;width:auto;display:block}
   .brand b{font-family:"Bricolage Grotesque";font-weight:600;font-size:17px}
   .ghost{background:transparent;border:1px solid var(--line);border-radius:10px;height:38px;padding:0 14px;color:var(--muted);font-size:14px}
   .ghost:hover{background:var(--bg);color:var(--ink)}
@@ -396,7 +396,8 @@ function renderDetail(){
 /* ===================== EXPORTAR EXCEL (respeita os filtros) ===================== */
 function baixarExcel(){
   const t=+$('thr').value;
-  const rows=escopo().filter(x=>x.pico>=t).sort((a,b)=>a.dt-b.dt);
+  const rows=escopo().filter(x=>x.pico>=t)
+    .sort((a,b)=>a.condutor.localeCompare(b.condutor,'pt-BR')||(a.dt-b.dt));
   if(!rows.length){alert('Não há registros no filtro atual para exportar.');return;}
   const p=(n)=>String(n).padStart(2,'0');
   const dados=rows.map(x=>({
